@@ -142,7 +142,11 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
         remote_ip_port = NULL;
     else
         remote_ip_port = remote_ip_port_buf;
-
+ /*
+    in most case, login = auth_name = user@domain
+    and realm = server hostname full qualified domain name
+ */
+    
     char *authType = "PLAIN";
     mailsmtp *session = [self resource];
     if (session->auth & MAILSMTP_AUTH_CHECKED) {
@@ -152,14 +156,43 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
             authType = "LOGIN";
         }
     }
-    
     ret = mailesmtp_auth_sasl(session, authType, cServer, local_ip_port, remote_ip_port,
+                              cUsername, cUsername, cPassword, cServer);
+    /*
+    char * authtype=[self authtype:[self resource]->auth];
+    ret = mailesmtp_auth_sasl([self resource], authtype, cServer, local_ip_port, remote_ip_port,
                             cUsername, cUsername, cPassword, cServer);
+    */
     if (ret != MAIL_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
         return NO;
     }
     return YES;
+}
+
+- (char *) authtype:(int) type
+{
+    switch (type&~MAILSMTP_AUTH_CHECKED) {
+        case MAILSMTP_AUTH_CRAM_MD5:
+            return "CRAM-MD5";
+        case MAILSMTP_AUTH_PLAIN:
+            return "PLAIN";
+        case MAILSMTP_AUTH_GSSAPI:
+            return "GSSAPI";
+        case MAILSMTP_AUTH_DIGEST_MD5:
+            return "DIGEST-MD5";
+        case MAILSMTP_AUTH_LOGIN:
+            return "LOGIN";
+        case MAILSMTP_AUTH_SRP:
+            return "SRP";
+        case MAILSMTP_AUTH_NTLM:
+            return "NTLM";
+        case MAILSMTP_AUTH_KERBEROS_V4:
+            return "KERBEROS_V4";
+        default:
+            break;
+    }
+    return "PLAIN";
 }
 
 

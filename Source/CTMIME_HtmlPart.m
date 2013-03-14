@@ -57,7 +57,7 @@
 
         char *source_charset = mMimeFields->fld_content_charset;
         if (source_charset == NULL) {
-            source_charset = DEST_CHARSET;
+            source_charset = mDefaultSourceCharset;
         }
 
         int r = charconv_buffer(DEST_CHARSET, source_charset,

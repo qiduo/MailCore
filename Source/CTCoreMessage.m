@@ -44,7 +44,7 @@
 #import "MailCoreUtilities.h"
 
 @implementation CTCoreMessage
-@synthesize mime=myParsedMIME, lastError, parentFolder;
+@synthesize mime=myParsedMIME, lastError, internalDate, parentFolder;
 
 - (id)init {
     self = [super init];
@@ -146,6 +146,11 @@
     myFields = mailimf_single_fields_new(fields);
 }
 
+- (struct mailimf_single_fields *)fields
+{
+    return myFields;
+}
+
 - (NSString *)body {
     if (myFields == NULL || myParsedMIME == nil) {
         [self fetchBodyStructure];
@@ -183,8 +188,12 @@
     if (myFields == NULL || myParsedMIME == nil) {
         [self fetchBodyStructure];
     }
+    return [self htmlBodyUsingEncoding:DEST_CHARSET];
+}
+
+- (NSString *)htmlBodyUsingEncoding:(char *)sourceCharset {
     NSMutableString *result = [NSMutableString string];
-    BOOL success = [self _buildUpHtmlBodyText:myParsedMIME result:result];
+    BOOL success = [self _buildUpHtmlBodyText:myParsedMIME usingEncoding:sourceCharset result:result];
     if (!success) {
         return nil;
     }
@@ -201,13 +210,16 @@
     return body;
 }
 
-
 - (BOOL)_buildUpBodyText:(CTMIME *)mime result:(NSMutableString *)result {
+    return [self _buildUpBodyText:mime usingEncoding:DEST_CHARSET result:result];
+}
+
+- (BOOL)_buildUpBodyText:(CTMIME *)mime usingEncoding:(char *)sourceCharset result:(NSMutableString *)result {
     if (mime == nil)
         return NO;
-
+    
     if ([mime isKindOfClass:[CTMIME_MessagePart class]]) {
-        return [self _buildUpBodyText:[mime content] result:result];
+        return [self _buildUpBodyText:[mime content] usingEncoding:sourceCharset result:result];
     }
     else if ([mime isKindOfClass:[CTMIME_TextPart class]]) {
         if ([[mime.contentType lowercaseString] rangeOfString:@"text/plain"].location != NSNotFound) {
@@ -215,6 +227,7 @@
             if (!success) {
                 return NO;
             }
+            mime.defaultSourceCharset = sourceCharset;
             NSString* y = [mime content];
             if(y == nil) {
                 return NO;
@@ -227,7 +240,7 @@
         NSEnumerator *enumer = [[mime content] objectEnumerator];
         CTMIME *subpart;
         while ((subpart = [enumer nextObject])) {
-            BOOL success = [self _buildUpBodyText:subpart result:result];
+            BOOL success = [self _buildUpBodyText:subpart usingEncoding:sourceCharset result:result];
             if (!success) {
                 return NO;
             }
@@ -237,11 +250,15 @@
 }
 
 - (BOOL)_buildUpHtmlBodyText:(CTMIME *)mime result:(NSMutableString *)result {
+    return [self _buildUpHtmlBodyText:mime usingEncoding:DEST_CHARSET result:result];
+}
+
+- (BOOL)_buildUpHtmlBodyText:(CTMIME *)mime usingEncoding:(char *)sourceCharset result:(NSMutableString *)result {
     if (mime == nil)
         return NO;
-
+    
     if ([mime isKindOfClass:[CTMIME_MessagePart class]]) {
-        return [self _buildUpHtmlBodyText:[mime content] result:result];
+        [self _buildUpHtmlBodyText:[mime content] usingEncoding:sourceCharset result:result];
     }
     else if ([mime isKindOfClass:[CTMIME_TextPart class]]) {
         if ([[mime.contentType lowercaseString] rangeOfString:@"text/html"].location != NSNotFound) {
@@ -249,7 +266,7 @@
             if (!success) {
                 return NO;
             }
-            
+            mime.defaultSourceCharset = sourceCharset;
             NSString* y = [mime content];
             if(y == nil) {
                 return NO;
@@ -262,7 +279,7 @@
         NSEnumerator *enumer = [[mime content] objectEnumerator];
         CTMIME *subpart;
         while ((subpart = [enumer nextObject])) {
-            BOOL success = [self _buildUpHtmlBodyText:subpart result:result];
+            BOOL success = [self _buildUpHtmlBodyText:subpart usingEncoding:sourceCharset result:result];
             if (!success) {
                 return NO;
             }
@@ -407,6 +424,23 @@
     }
 }
 
+- (NSDate *)sentDateGMT {
+    struct mailimf_date_time *d;
+
+    if((d = [self libetpanDateTime]) == NULL)
+        return nil;
+
+    NSInteger timezoneOffsetInSeconds = 3600*d->dt_zone/100;
+
+    NSDate *date = [self senderDate];
+
+    return [date dateByAddingTimeInterval:timezoneOffsetInSeconds * -1];
+}
+
+- (NSDate*)sentDateLocalTimeZone {
+    return [[self sentDateGMT] dateByAddingTimeInterval:[[NSTimeZone localTimeZone] secondsFromGMT]];
+}
+
 - (BOOL)isUnread {
     struct mail_flags *flags = myMessage->msg_flags;
     if (flags != NULL) {
@@ -525,14 +559,14 @@
 
 
 - (void)setInReplyTo:(NSArray *)messageIds {
-	struct mailimf_in_reply_to *imf = mailimf_in_reply_to_new([self _clistFromStringArray:messageIds]);
-
+   struct mailimf_in_reply_to *imf = mailimf_in_reply_to_new([self _clistFromStringArray:messageIds]);
+    
     if (myFields->fld_in_reply_to != NULL) {
         mailimf_in_reply_to_free(myFields->fld_in_reply_to);
         myFields->fld_in_reply_to = imf;
     }
     else
-		myFields->fld_in_reply_to = imf;
+       myFields->fld_in_reply_to = imf;
 }
 
 
@@ -546,13 +580,13 @@
 
 - (void)setReferences:(NSArray *)messageIds {
     struct mailimf_references *imf = mailimf_references_new([self _clistFromStringArray:messageIds]);
-
+    
     if (myFields->fld_references != NULL) {
         mailimf_references_free(myFields->fld_references);
         myFields->fld_references = imf;
     }
     else
-		myFields->fld_references = imf;
+       myFields->fld_references = imf;
 }
 
 
@@ -633,6 +667,12 @@
         //TODO Need to make sure that fields gets freed somewhere
         fields = mailimf_fields_new_with_data(from, sender, replyTo, to, cc, bcc, inReplyTo, references, subject);
         [(CTMIME_MessagePart *)msgPart setIMFFields:fields];
+        // yxc changed
+        if (myFields) {
+            mailimf_single_fields_free(myFields);
+        }
+        myFields=mailimf_single_fields_new(fields);
+
     }
     return [myParsedMIME render];
 }
@@ -726,7 +766,11 @@
     if (mailbox->mb_display_name != NULL) {
         NSString *decodedName = MailCoreDecodeMIMEPhrase(mailbox->mb_display_name);
         if (decodedName == nil) {
-            decodedName = @"";
+            NSStringEncoding gb2312 = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+            decodedName=[NSString stringWithCString:mailbox->mb_display_name encoding:gb2312];
+            if (decodedName) {
+                decodedName=@"";
+            }
         }
         [address setName:decodedName];
     }
@@ -819,29 +863,29 @@
 - (NSArray *)_stringArrayFromClist:(clist *)list {
     clistiter *iter;
     NSMutableArray *stringSet = [NSMutableArray array];
-	char *string;
-	
+    char *string;
+
     if(list == NULL)
         return stringSet;
-	
+
     for(iter = clist_begin(list); iter != NULL; iter = clist_next(iter)) {
         string = clist_content(iter);
         NSString *strObj = [[NSString alloc] initWithUTF8String:string];
-		[stringSet addObject:strObj];
+        [stringSet addObject:strObj];
         [strObj release];
     }
-	
+
     return stringSet;
 }
 
 - (clist *)_clistFromStringArray:(NSArray *)strings {
-	clist * str_list = clist_new();
+    clist * str_list = clist_new();
 
-	for (NSString *str in strings) {
-		clist_append(str_list, strdup([str UTF8String]));
-	}
+    for (NSString *str in strings) {
+        clist_append(str_list, strdup([str UTF8String]));
+    }
 
-	return str_list;
+    return str_list;
 }
 
 @end

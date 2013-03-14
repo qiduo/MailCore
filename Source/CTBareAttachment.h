@@ -41,10 +41,12 @@
     CTMIME_SinglePart *mMIMEPart;
     NSString *mFilename;
     NSString *mContentType;
+    int mFilesize;
 }
 @property(retain) NSString *filename;
 @property(retain) NSString *contentType;
 @property(readonly) CTMIME_SinglePart *part;
+@property(nonatomic,assign) int filesize;
 
 -(NSString*)decodedFilename;
 - (id)initWithMIMESinglePart:(CTMIME_SinglePart *)part;

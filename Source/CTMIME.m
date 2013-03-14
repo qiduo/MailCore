@@ -34,7 +34,7 @@
 #import "CTMIME_Enumerator.h"
 
 @implementation CTMIME
-@synthesize contentType=mContentType;
+@synthesize contentType=mContentType, defaultSourceCharset=mDefaultSourceCharset;
 
 - (id)initWithMIMEStruct:(struct mailmime *)mime 
         forMessage:(struct mailmessage *)message {
@@ -84,6 +84,7 @@
             }
         }
         mContentType = [[NSString alloc] initWithFormat:@"%@/%@", mainType, subType];
+        mDefaultSourceCharset = "UTF-8";
     }
     return self;
 }

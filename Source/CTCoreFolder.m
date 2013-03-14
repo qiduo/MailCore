@@ -116,6 +116,13 @@ static const int MAX_PATH_SIZE = 1024;
     return lastError;
 }
 
+- (NSString *)name {
+    //Get the last part of the path
+    NSArray *pathParts = [myPath componentsSeparatedByString:@"."];
+    return [pathParts objectAtIndex:[pathParts count]-1];
+}
+
+
 - (NSString *)path {
     return myPath;
 }
@@ -481,6 +488,17 @@ static const int MAX_PATH_SIZE = 1024;
             return nil;
         }
     }
+    
+    /*
+    // Always fetch InternalDate
+    fetch_att = mailimap_fetch_att_new_internaldate();
+    r = mailimap_fetch_type_new_fetch_att_list_add(fetch_type, fetch_att);
+    if (r != MAILIMAP_NO_ERROR) {
+        mailimap_fetch_att_free(fetch_att);
+        mailimap_fetch_type_free(fetch_type);
+        self.lastError = MailCoreCreateErrorFromIMAPCode(r);
+        return nil;
+    }*/
 
     // We only fetch the body structure if requested
     if (attrs & CTFetchAttrBodyStructure) {

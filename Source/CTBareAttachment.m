@@ -39,6 +39,7 @@
 @implementation CTBareAttachment
 @synthesize contentType=mContentType;
 @synthesize filename=mFilename;
+@synthesize filesize;
 
 - (id)initWithMIMESinglePart:(CTMIME_SinglePart *)part {
     self = [super init];
@@ -64,14 +65,21 @@
 }
 
 - (CTCoreAttachment *)fetchFullAttachmentWithProgress:(CTProgressBlock)block {
-    [mMIMEPart fetchPartWithProgress:block];
-    CTCoreAttachment *attach = [[CTCoreAttachment alloc] initWithData:mMIMEPart.data
-                                                          contentType:self.contentType filename:self.filename];
-    return [attach autorelease];
+    if ([mMIMEPart fetchPartWithProgress:block]) {
+        CTCoreAttachment *attach = [[CTCoreAttachment alloc] initWithData:mMIMEPart.data
+                                                              contentType:self.contentType filename:self.filename];
+        return [attach autorelease];
+    }
+    return nil;
 }
 
 - (CTMIME_SinglePart *)part {
     return mMIMEPart;
+}
+
+- (int) filesize
+{
+   return  mMIMEPart.size;
 }
 
 - (void)dealloc {
