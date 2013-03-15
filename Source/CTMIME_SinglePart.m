@@ -288,21 +288,24 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
     int r;
 
     if (mFilename) {
+        char *charData = (char *)[mFilename cStringUsingEncoding:NSUTF8StringEncoding];
+        char *dupeData = malloc(strlen(charData));
+        strcpy(dupeData, charData);
         mime_fields = mailmime_fields_new_filename( MAILMIME_DISPOSITION_TYPE_ATTACHMENT, 
-                                                    (char *)[mFilename cStringUsingEncoding:NSUTF8StringEncoding], 
+                                                    dupeData,
                                                     MAILMIME_MECHANISM_BASE64 ); 
     } else {
         mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_BASE64);
     }
     if (self.contentId) {
-        struct mailmime_field*  contentId= mailmime_field_new(MAILMIME_FIELD_ID, NULL, NULL, (char *)[self.contentId UTF8String], NULL, 0, NULL, NULL, NULL);
+        struct mailmime_field*  contentId= mailmime_field_new(MAILMIME_FIELD_ID, NULL, NULL, strdup([self.contentId UTF8String]), NULL, 0, NULL, NULL, NULL);
         mailmime_fields_add(mime_fields, contentId);
     }
     content = mailmime_content_new_with_str([self.contentType cStringUsingEncoding:NSUTF8StringEncoding]);
     mime_sub = mailmime_new_empty(content, mime_fields);
     param = mailmime_parameter_new(strdup("charset"), strdup(DEST_CHARSET));
     r = clist_append(content->ct_parameters, param);
-    param = mailmime_parameter_new(strdup("name"), strdup((char *)[mFilename cStringUsingEncoding:NSUTF8StringEncoding]));
+    param = mailmime_parameter_new(strdup("name"), strdup([mFilename cStringUsingEncoding:NSUTF8StringEncoding]));
     r = clist_append(content->ct_parameters, param);
 
     // Add Data
