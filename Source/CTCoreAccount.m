@@ -40,7 +40,7 @@
 
 
 @implementation CTCoreAccount
-@synthesize lastError, pathDelimiter, corefolders;
+@synthesize lastError, pathDelimiter, corefolders, lastUsedDate;
 
 - (id)init {
     self = [super init];
@@ -52,8 +52,7 @@
     return self;
 }
 
-- (NSMutableArray *)corefolders
-{
+- (NSMutableArray *)corefolders{
     return corefolders;
 }
 
@@ -63,6 +62,7 @@
     self.lastError = nil;
     self.pathDelimiter = nil;
     self.corefolders = nil;
+    self.lastUsedDate = nil;
     [super dealloc];
 }
 
@@ -72,6 +72,10 @@
 
 - (BOOL)isConnected {
     return connected;
+}
+
+- (NSDate *)lastUsedDate{
+    return lastUsedDate;
 }
 
 - (BOOL)connectToServer:(NSString *)server port:(int)port
