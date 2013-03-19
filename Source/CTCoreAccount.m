@@ -40,7 +40,7 @@
 
 
 @implementation CTCoreAccount
-@synthesize lastError, pathDelimiter;
+@synthesize lastError, pathDelimiter, corefolders;
 
 - (id)init {
     self = [super init];
@@ -52,12 +52,17 @@
     return self;
 }
 
+- (NSMutableArray *)corefolders
+{
+    return corefolders;
+}
 
 - (void)dealloc {
     mailstorage_disconnect(myStorage);
     mailstorage_free(myStorage);
     self.lastError = nil;
     self.pathDelimiter = nil;
+    self.corefolders = nil;
     [super dealloc];
 }
 
