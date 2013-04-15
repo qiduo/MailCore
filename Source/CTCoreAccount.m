@@ -309,31 +309,36 @@
         if (selectable) {
             mailboxName = mailboxStruct->mb_name;
             // Per RFC 3501, mailbox names must use 7-bit enconding (UTF-7).
-            mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
-            
-            if (mailboxStruct->mb_delimiter) {
-                self.pathDelimiter = [NSString stringWithFormat:@"%c", mailboxStruct->mb_delimiter];
-            } else {
-                self.pathDelimiter = @"/";
-            }
-            
-            listResult = [[CTXlistResult alloc] init];
-            [listResult setName:mailboxNameObject];
-            [mailboxNameObject release];
-            
-            if (flags) {
-                for (flagIter = clist_begin(flags->mbf_oflags); flagIter != NULL; flagIter = flagIter->next) {
-                    oflagStruct = flagIter->data;
-                    flagName = oflagStruct->of_flag_ext;
-                    flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
-                    [listResult addFlag:flagNameObject];
-                    [flagNameObject release];
+            if (mailboxName != NULL) {
+                mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
+                
+                if (mailboxStruct->mb_delimiter) {
+                    self.pathDelimiter = [NSString stringWithFormat:@"%c", mailboxStruct->mb_delimiter];
+                } else {
+                    self.pathDelimiter = @"/";
                 }
+                
+                listResult = [[CTXlistResult alloc] init];
+                [listResult setName:mailboxNameObject];
+                [mailboxNameObject release];
+                
+                if (flags) {
+                    for (flagIter = clist_begin(flags->mbf_oflags); flagIter != NULL; flagIter = flagIter->next) {
+                        oflagStruct = flagIter->data;
+                        flagName = oflagStruct->of_flag_ext;
+                        if (flagName != NULL) {
+                            flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
+                            [listResult addFlag:flagNameObject];
+                            [flagNameObject release];
+                        }
+                    }
+                }
+                
+                [allFolders addObject:listResult];
+                [listResult release];
+
             }
-            
-            [allFolders addObject:listResult];
-            [listResult release];
-        }
+                    }
     }
     mailimap_list_result_free(allList);
     return allFolders;
