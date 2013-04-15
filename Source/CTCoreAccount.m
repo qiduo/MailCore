@@ -310,7 +310,7 @@
             mailboxName = mailboxStruct->mb_name;
             // Per RFC 3501, mailbox names must use 7-bit enconding (UTF-7).
             if (mailboxName != NULL) {
-                mailboxNameObject = (NSString *)CFStringCreateWithCString(NULL, mailboxName, kCFStringEncodingUTF7_IMAP);
+                mailboxNameObject = [NSString stringWithUTF8String:mailboxName];
                 
                 if (mailboxStruct->mb_delimiter) {
                     self.pathDelimiter = [NSString stringWithFormat:@"%c", mailboxStruct->mb_delimiter];
@@ -319,7 +319,7 @@
                 }
                 
                 listResult = [[CTXlistResult alloc] init];
-                [listResult setName:mailboxNameObject];
+                [listResult setName:[mailboxNameObject retain]];
                 [mailboxNameObject release];
                 
                 if (flags) {
@@ -327,8 +327,8 @@
                         oflagStruct = flagIter->data;
                         flagName = oflagStruct->of_flag_ext;
                         if (flagName != NULL) {
-                            flagNameObject = (NSString *)CFStringCreateWithCString(NULL, flagName, kCFStringEncodingUTF7_IMAP);
-                            [listResult addFlag:flagNameObject];
+                            flagNameObject = [NSString stringWithUTF8String:flagName];
+                            [listResult addFlag:[flagNameObject retain]];
                             [flagNameObject release];
                         }
                     }
@@ -338,7 +338,7 @@
                 [listResult release];
 
             }
-                    }
+        }
     }
     mailimap_list_result_free(allList);
     return allFolders;
