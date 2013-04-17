@@ -65,6 +65,19 @@
               error:(NSError **)error;
 
 /**
+ * @param authType. enum MAILSMTP_AUTH_PLAIN / MAILSMTP_AUTH_XOAUTH2 ...
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+              error:(NSError **)error;
+
+/**
  Use this method to test the user's credentials.
  
  This is useful for account setup. You can have the user enter in their credentials and then verify they work without sending a message.
@@ -84,5 +97,18 @@
             connectionType:(CTSMTPConnectionType)connectionType
                    useAuth:(BOOL)auth
                      error:(NSError **)error;
+
+/**
+ * @param authType. enum MAILSMTP_AUTH_PLAIN / MAILSMTP_AUTH_XOAUTH2 ...
+ */
++ (BOOL)canConnectToServer:(NSString *)server
+                  username:(NSString *)username
+                  password:(NSString *)password
+                      port:(unsigned int)port
+            connectionType:(CTSMTPConnectionType)connectionType
+                   useAuth:(BOOL)auth
+                  authType:(int)authType
+                     error:(NSError **)error;
+
 
 @end

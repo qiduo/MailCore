@@ -42,7 +42,7 @@
 @implementation CTSMTPConnection
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
            password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth error:(NSError **)error {
+            useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
@@ -72,7 +72,7 @@
         }
     }
     if (auth) {
-        success = [smtpObj authenticateWithUsername:username password:password server:server];
+        success = [smtpObj authenticateWithUsername:username password:password server:server authType:authType];
         if (!success) {
             goto error;
         }
@@ -111,9 +111,16 @@ error:
     return NO;
 }
 
+
++(BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:MAILSMTP_AUTH_PLAIN error:error];
+}
+
+
+
 + (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password
                       port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-                   useAuth:(BOOL)auth error:(NSError **)error {
+                   useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
   BOOL success;
   mailsmtp *smtp = NULL;
   smtp = mailsmtp_new(0, NULL);
@@ -143,7 +150,7 @@ error:
     }
   }
   if (auth) {
-    success = [smtpObj authenticateWithUsername:username password:password server:server];
+    success = [smtpObj authenticateWithUsername:username password:password server:server authType:authType];
     if (!success) {
       goto error;
     }
@@ -160,4 +167,10 @@ error:
   mailsmtp_free(smtp);
   return NO;
 }
+
+
++ (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth error:(NSError **)error {
+    return [self canConnectToServer:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:MAILSMTP_AUTH_PLAIN error:error];
+}
+
 @end

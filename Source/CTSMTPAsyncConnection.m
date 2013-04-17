@@ -190,6 +190,8 @@ smtpProgress(size_t aCurrent, size_t aTotal) {
             goto error;
         }
     }
+    
+    // NOTE!!! This function does send authType to SMTPObj. If needed to be used, you must do this first.
     if ([(NSNumber *) [theSettings objectForKey:@"auth"] boolValue]) {
         success = [mSMTPObj authenticateWithUsername:[theSettings objectForKey:@"username"]
             password:[theSettings objectForKey:@"password"]

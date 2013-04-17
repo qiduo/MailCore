@@ -117,52 +117,104 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
 
 
 - (BOOL)authenticateWithUsername:(NSString *)username password:(NSString *)password server:(NSString *)server {
+    return [self authenticateWithUsername:username password:password server:server authType:MAILSMTP_AUTH_PLAIN];
+}
+
+
+- (BOOL)authenticateWithUsername:(NSString *)username password:(NSString *)password server:(NSString *)server authType:(int)authType {
     char *cUsername = (char *)[username cStringUsingEncoding:NSUTF8StringEncoding];
     char *cPassword = (char *)[password cStringUsingEncoding:NSUTF8StringEncoding];
     char *cServer = (char *)[server cStringUsingEncoding:NSUTF8StringEncoding];
-
+    
     char local_ip_port_buf[128];
     char remote_ip_port_buf[128];
     char * local_ip_port;
     char * remote_ip_port;
-
+    
     if (cPassword == NULL)
         cPassword = "";
     if (cUsername == NULL)
         cUsername = "";
-
+    
     int ret = fill_local_ip_port([self resource]->stream, local_ip_port_buf, sizeof(local_ip_port_buf));
     if (ret < 0)
         local_ip_port = NULL;
     else
         local_ip_port = local_ip_port_buf;
-
+    
     ret = fill_remote_ip_port([self resource]->stream, remote_ip_port_buf, sizeof(remote_ip_port_buf));
     if (ret < 0)
         remote_ip_port = NULL;
     else
         remote_ip_port = remote_ip_port_buf;
- /*
-    in most case, login = auth_name = user@domain
-    and realm = server hostname full qualified domain name
- */
+    /*
+     in most case, login = auth_name = user@domain
+     and realm = server hostname full qualified domain name
+     */
     
-    char *authType = "PLAIN";
+    
+    char *authTypeStr = "PLAIN";
     mailsmtp *session = [self resource];
     if (session->auth & MAILSMTP_AUTH_CHECKED) {
-        // If the server doesn't support PLAIN but does support the older LOGIN,
-        // fall back to LOGIN. This can happen with older servers like Exchange 2003
-        if (!(session->auth & MAILSMTP_AUTH_PLAIN) && session->auth & MAILSMTP_AUTH_LOGIN) {
-            authType = "LOGIN";
+        if ((authType & session->auth) == 0) {
+            // it means authType requested is not supported by smtp server.
+            // Choose a type supported.
+            if ((authType & MAILSMTP_AUTH_PLAIN) != 0) {
+                // Check PLAIN first
+                authType = MAILSMTP_AUTH_PLAIN;
+            } else {
+                unsigned int mask = 2;
+                while ((mask & session->auth) == 0 && session->auth < MAILSMTP_AUTH_XOAUTH2) {
+                    mask = 2 * mask;
+                }
+                // TODO: There is a tiny oppotunity that mask may be greater than MAILSMTP_AUTH_XOAUTH2. Should return error here.
+                authType = mask;
+            }
         }
+    } else {
+        authType = MAILSMTP_AUTH_PLAIN;
     }
-    ret = mailesmtp_auth_sasl(session, authType, cServer, local_ip_port, remote_ip_port,
+    
+    switch (authType) {
+        case MAILSMTP_AUTH_XOAUTH2:
+            authTypeStr = "XOAUTH2";
+            break;
+            
+        case MAILSMTP_AUTH_LOGIN:
+            authTypeStr = "LOGIN";
+            break;
+            
+        case MAILSMTP_AUTH_CRAM_MD5:
+            authTypeStr = "CRAM-MD5";
+            break;
+            
+        case MAILSMTP_AUTH_DIGEST_MD5:
+            authTypeStr = "DIGEST-MD5";
+            break;
+            
+        case MAILSMTP_AUTH_GSSAPI:
+            authTypeStr = "GSSAPI";
+            break;
+            
+        case MAILSMTP_AUTH_NTLM:
+            authTypeStr = "NTLM";
+            break;
+            
+        case MAILSMTP_AUTH_SRP:
+            authTypeStr = "SRP";
+            break;
+            
+        case MAILSMTP_AUTH_KERBEROS_V4:
+            authTypeStr = "KERBEROS_V4";
+            break;
+
+        default:
+            break;
+    }
+
+    ret = mailesmtp_auth_sasl(session, authTypeStr, cServer, local_ip_port, remote_ip_port,
                               cUsername, cUsername, cPassword, cServer);
-    /*
-    char * authtype=[self authtype:[self resource]->auth];
-    ret = mailesmtp_auth_sasl([self resource], authtype, cServer, local_ip_port, remote_ip_port,
-                            cUsername, cUsername, cPassword, cServer);
-    */
+
     if (ret != MAIL_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
         return NO;
@@ -170,6 +222,9 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
     return YES;
 }
 
+/**
+ * useless now.
+ */
 - (char *) authtype:(int) type
 {
     switch (type&~MAILSMTP_AUTH_CHECKED) {

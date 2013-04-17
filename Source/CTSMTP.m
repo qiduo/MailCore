@@ -89,6 +89,10 @@
     return YES;
 }
 
+- (BOOL)authenticateWithUsername:(NSString *)username password:(NSString *)password server:(NSString *)server authType:(int)authType {
+    return YES;
+}
+
 - (BOOL)setFrom:(NSString *)fromAddress {
     int ret = mailsmtp_mail([self resource], [fromAddress cStringUsingEncoding:NSUTF8StringEncoding]);
     if (ret != MAIL_NO_ERROR) {
