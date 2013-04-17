@@ -1,0 +1,6 @@
+[submodule "iOSPorts"]
+	path = iOSPorts
+	url = https://github.com/Applexis/iOSPorts.git
+[submodule "libetpan"]
+	path = libetpan
+	url = https://github.com/Applexis/libetpan.git
