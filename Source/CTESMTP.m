@@ -152,65 +152,81 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
      and realm = server hostname full qualified domain name
      */
     
+    // authType is the type client want to use to connect.
+    // if there's no supported autyType, will try PLAIN.
+    // if need not to auth, return YES;
+    char *authTypeStr;
     
-    char *authTypeStr = "PLAIN";
     mailsmtp *session = [self resource];
-    if (session->auth & MAILSMTP_AUTH_CHECKED) {
-        if ((authType & session->auth) == 0) {
-            // it means authType requested is not supported by smtp server.
-            // Choose a type supported.
-            if ((authType & MAILSMTP_AUTH_PLAIN) != 0) {
-                // Check PLAIN first
-                authType = MAILSMTP_AUTH_PLAIN;
-            } else {
-                unsigned int mask = 2;
-                while ((mask & session->auth) == 0 && session->auth < MAILSMTP_AUTH_XOAUTH2) {
-                    mask = 2 * mask;
-                }
-                // TODO: There is a tiny oppotunity that mask may be greater than MAILSMTP_AUTH_XOAUTH2. Should return error here.
+    
+    if (session->auth == MAILSMTP_AUTH_NOT_CHECKED) {
+        return YES;
+    }
+    //if (!(session->auth & MAILSMTP_AUTH_CHECKED)) {
+        // not checked, return YES.
+        //return YES;
+    //}
+
+    if ((authType & session->auth) == 0) {
+        // it means authType requested is not supported by smtp server.
+        // Guess a type supported.
+        if ((session->auth & MAILSMTP_AUTH_PLAIN) != 0) {
+            // Check PLAIN first
+            authType = MAILSMTP_AUTH_PLAIN;
+        }
+        else if ((session->auth & MAILSMTP_AUTH_LOGIN)) {
+            // Then check LOGIN
+            authType = MAILSMTP_AUTH_LOGIN;
+        }
+        else if (session->auth != MAILSMTP_AUTH_CHECKED) {
+            
+            // if not checked, use autyType passed by anyway.
+            
+            unsigned int mask = 2;
+            while ((mask & session->auth) == 0 && session->auth < MAILSMTP_AUTH_XOAUTH2) {
+                mask = 2 * mask;
+            }
+            
+            // There is a tiny oppotunity that mask may be greater than MAILSMTP_AUTH_XOAUTH2. Use the passed authType anyway.
+            if (mask <= MAILSMTP_AUTH_XOAUTH2) {
+                // have found a kind of authType which is supported.
                 authType = mask;
             }
         }
-    } else {
-        authType = MAILSMTP_AUTH_PLAIN;
     }
     
-    switch (authType) {
-        case MAILSMTP_AUTH_XOAUTH2:
-            authTypeStr = "XOAUTH2";
-            break;
-            
-        case MAILSMTP_AUTH_LOGIN:
-            authTypeStr = "LOGIN";
-            break;
-            
-        case MAILSMTP_AUTH_CRAM_MD5:
-            authTypeStr = "CRAM-MD5";
-            break;
-            
-        case MAILSMTP_AUTH_DIGEST_MD5:
-            authTypeStr = "DIGEST-MD5";
-            break;
-            
-        case MAILSMTP_AUTH_GSSAPI:
-            authTypeStr = "GSSAPI";
-            break;
-            
-        case MAILSMTP_AUTH_NTLM:
-            authTypeStr = "NTLM";
-            break;
-            
-        case MAILSMTP_AUTH_SRP:
-            authTypeStr = "SRP";
-            break;
-            
-        case MAILSMTP_AUTH_KERBEROS_V4:
-            authTypeStr = "KERBEROS_V4";
-            break;
-
-        default:
-            break;
+    
+    if (authType & MAILSMTP_AUTH_PLAIN) {
+        authTypeStr = "PLAIN";
     }
+    else if (authType & MAILSMTP_AUTH_LOGIN) {
+        authTypeStr = "LOGIN";
+    }
+    else if (authType & MAILSMTP_AUTH_XOAUTH2) {
+        authTypeStr = "XOAUTH2";
+    }
+    else if (authType & MAILSMTP_AUTH_CRAM_MD5) {
+        authTypeStr = "CRAM-MD5";
+    }
+    else if (authType & MAILSMTP_AUTH_DIGEST_MD5) {
+        authTypeStr = "DIGEST-MD5";
+    }
+    else if (authType & MAILSMTP_AUTH_GSSAPI) {
+        authTypeStr = "GSSAPI";
+    }
+    else if (authType & MAILSMTP_AUTH_NTLM) {
+        authTypeStr = "NTLM";
+    }
+    else if (authType & MAILSMTP_AUTH_SRP) {
+        authTypeStr = "SRP";
+    }
+    else if (authType & MAILSMTP_AUTH_KERBEROS_V4) {
+        authTypeStr = "KERBEROS_V4";
+    }
+    else {
+        authTypeStr = "LOGIN";
+    }
+
 
     ret = mailesmtp_auth_sasl(session, authTypeStr, cServer, local_ip_port, remote_ip_port,
                               cUsername, cUsername, cPassword, cServer);
