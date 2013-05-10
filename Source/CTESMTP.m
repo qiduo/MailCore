@@ -230,11 +230,19 @@ static int fill_local_ip_port(mailstream * stream, char * local_ip_port, size_t 
 
     ret = mailesmtp_auth_sasl(session, authTypeStr, cServer, local_ip_port, remote_ip_port,
                               cUsername, cUsername, cPassword, cServer);
-
+    
+    // if login is used and ret error, try
+    if (strcmp(authTypeStr, "PLAIN") == 0 && ret != MAIL_NO_ERROR) {
+        ret = mailesmtp_auth_sasl(session, "LOGIN", cServer, local_ip_port, remote_ip_port, cUsername, cUsername, cPassword, cServer);
+    } else if (strcmp(authTypeStr, "LOGIN") == 0 && ret != MAIL_NO_ERROR) {
+        ret = mailesmtp_auth_sasl(session, "PLAIN", cServer, local_ip_port, remote_ip_port, cUsername, cUsername, cPassword, cServer);
+    }
+    
     if (ret != MAIL_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
         return NO;
     }
+    
     return YES;
 }
 
