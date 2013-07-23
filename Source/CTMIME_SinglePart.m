@@ -111,7 +111,7 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
             }
 
             if (mMimeFields->fld_disposition_filename != NULL) {
-                self.filename =MailCoreDecodeMIMEPhrase(mMimeFields->fld_disposition_filename);
+                self.filename = MailCoreDecodeMIMEPhrase(mMimeFields->fld_disposition_filename);
                 /*
                 if (!self.filename||[self.filename isEqualToString:@""]) {
                     CFStringRef cfstr = CFStringCreateWithCString(NULL, mMimeFields->fld_content_name, kCFStringEncodingGB_18030_2000);
@@ -147,16 +147,16 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
                 }
             }else if (mMimeFields->fld_content_name!=NULL){
                 if (mMimeFields->fld_content_charset) {
-                    char * data=mMimeFields->fld_content_name;
+                    char * data= mMimeFields->fld_content_name;
                     size_t currToken = 0;
                     char *decodedSubject;
                     mailmime_encoded_phrase_parse(mMimeFields->fld_content_charset, data, strlen(data),
                                                             &currToken, DEST_CHARSET, &decodedSubject);
-                    self.filename =MailCoreDecodeMIMEPhrase(decodedSubject);
+                    self.filename = MailCoreDecodeMIMEPhrase(decodedSubject);
                     free(decodedSubject);
 
                 }else{
-                    self.filename =MailCoreDecodeMIMEPhrase(mMimeFields->fld_content_name);
+                    self.filename = MailCoreDecodeMIMEPhrase(mMimeFields->fld_content_name);
                 }
                 self.attached = YES;
 

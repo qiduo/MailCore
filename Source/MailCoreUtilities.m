@@ -274,13 +274,13 @@ NSString *MailCoreDecodeMIMEPhrase(char *data) {
         if (err != MAILIMF_NO_ERROR) {
             if (decodedSubject == NULL)
                 free(decodedSubject);
-            return nil;
+            NSStringEncoding gb2312 = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+            result = [NSString stringWithCString:data encoding:gb2312];
+            return result;
         }
     } else {
         return @"";
     }
-
-    result = [NSString stringWithCString:decodedSubject encoding:NSUTF8StringEncoding];
-    free(decodedSubject);
+        free(decodedSubject);
     return result;
 }

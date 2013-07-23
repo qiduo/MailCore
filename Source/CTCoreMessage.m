@@ -766,11 +766,7 @@
     if (mailbox->mb_display_name != NULL) {
         NSString *decodedName = MailCoreDecodeMIMEPhrase(mailbox->mb_display_name);
         if (decodedName == nil) {
-            NSStringEncoding gb2312 = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
-            decodedName=[NSString stringWithCString:mailbox->mb_display_name encoding:gb2312];
-            if (decodedName) {
-                decodedName=@"";
-            }
+            decodedName=@"";
         }
         [address setName:decodedName];
     }
