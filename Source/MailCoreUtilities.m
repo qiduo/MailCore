@@ -272,15 +272,16 @@ NSString *MailCoreDecodeMIMEPhrase(char *data) {
                                             &currToken, DEST_CHARSET, &decodedSubject);
 
         if (err != MAILIMF_NO_ERROR) {
-            if (decodedSubject == NULL)
+            if (decodedSubject != NULL)
                 free(decodedSubject);
             NSStringEncoding gb2312 = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
             result = [NSString stringWithCString:data encoding:gb2312];
-            return result;
+        } else {
+            result = [NSString stringWithUTF8String:decodedSubject];
+            free(decodedSubject);
         }
     } else {
         return @"";
     }
-        free(decodedSubject);
     return result;
 }
