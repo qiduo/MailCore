@@ -32,6 +32,8 @@
 #import <Foundation/Foundation.h>
 #import "MailCoreTypes.h"
 
+typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
+
 /**
  This is not a class you instantiate! It has only two class methods, and that is all you need to send e-mail.
  First use CTCoreMessage to compose an e-mail and then pass the e-mail to the method sendMessage: with
@@ -77,6 +79,21 @@
            authType:(int)authType
               error:(NSError **)error;
 
+
+/**
+ * @param block the call back block for send mail progress, can be nil
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+              error:(NSError **)error;
+
 /**
  Use this method to test the user's credentials.
  
@@ -109,6 +126,7 @@
                    useAuth:(BOOL)auth
                   authType:(int)authType
                      error:(NSError **)error;
+
 
 
 @end

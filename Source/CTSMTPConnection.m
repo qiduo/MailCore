@@ -40,13 +40,19 @@
 
 //TODO Add more descriptive error messages using mailsmtp_strerror
 @implementation CTSMTPConnection
+
+static void send_progress_callback(size_t current, size_t maximum, void * context) {
+    CTSendProgressBlock block = context;
+    block(current, maximum);
+}
+
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
            password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
-
+    
     CTSMTP *smtpObj = [[CTESMTP alloc] initWithResource:smtp];
     if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
         success = [smtpObj connectToServer:server port:port];
@@ -77,12 +83,12 @@
             goto error;
         }
     }
-
+    
     success = [smtpObj setFrom:[[[message from] anyObject] email]];
     if (!success) {
         goto error;
     }
-
+    
     /* recipients */
     NSMutableSet *rcpts = [NSMutableSet set];
     [rcpts unionSet:[message to]];
@@ -92,9 +98,18 @@
     if (!success) {
         goto error;
     }
-
+    
+    if (block) {
+        mailsmtp_set_progress_callback(smtp, &send_progress_callback, block);
+    }
+    
     /* data */
     success = [smtpObj setData:[message render]];
+    
+    if (block) {
+        mailsmtp_set_progress_callback(smtp, NULL, NULL);
+    }
+    
     if (!success) {
         goto error;
     }
@@ -109,6 +124,12 @@ error:
     [smtpObj release];
     mailsmtp_free(smtp);
     return NO;
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:nil error:error];
 }
 
 
@@ -172,5 +193,7 @@ error:
 + (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth error:(NSError **)error {
     return [self canConnectToServer:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:MAILSMTP_AUTH_PLAIN error:error];
 }
+
+
 
 @end
