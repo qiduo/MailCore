@@ -69,7 +69,11 @@
     struct mailmime_type *aType = mime->mm_content_type->ct_type;
     if (aType->tp_type != MAILMIME_TYPE_DISCRETE_TYPE) {
         /* What do you do with a composite single part? */
-        return nil;
+        
+        /* yxc
+          i choose to do nothing and not return;
+        */
+        //return nil;
     }
     CTMIME_SinglePart *content = nil;
     switch (aType->tp_data.tp_discrete_type->dt_type) {
