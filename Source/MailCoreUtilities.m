@@ -264,7 +264,7 @@ NSError* MailCoreCreateErrorFromIMAPCode(int errcode) {
 NSString *MailCoreDecodeMIMEPhrase(char *data) {
     int err;
     size_t currToken = 0;
-    char *decodedSubject;
+    char *decodedSubject = NULL;
     NSString *result;
 
     if (data && *data != '\0') {
