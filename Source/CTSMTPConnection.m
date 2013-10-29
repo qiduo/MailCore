@@ -48,10 +48,13 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
 
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
            password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block error:(NSError **)error {
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
+    if (connectionTimeout > 0) {
+        mailsmtp_set_timeout(smtp, connectionTimeout);
+    }
     
     CTSMTP *smtpObj = [[CTESMTP alloc] initWithResource:smtp];
     if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
@@ -62,6 +65,11 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
     if (!success) {
         goto error;
     }
+    
+    if (uploadTimeout > 0 && smtp->stream != NULL) {
+        smtp->stream->low->timeout = uploadTimeout;
+    }
+    
     if ([smtpObj helo] == NO) {
         /* The server didn't support ESMTP, so switching to STMP */
         [smtpObj release];
@@ -124,6 +132,10 @@ error:
     [smtpObj release];
     mailsmtp_free(smtp);
     return NO;
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:0 uploadTimeout:0 error:error];
 }
 
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username

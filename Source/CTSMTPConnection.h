@@ -79,6 +79,14 @@ typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
            authType:(int)authType
               error:(NSError **)error;
 
+/**
+ * @param connectionTimeout, timeout for connection to server 
+   @param uploadTimeout, timeout for uploading
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error;
+
 
 /**
  * @param block the call back block for send mail progress, can be nil
