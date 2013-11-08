@@ -662,16 +662,23 @@
         clist *inReplyTo = (myFields->fld_in_reply_to != NULL) ? (myFields->fld_in_reply_to->mid_list) : NULL;
         clist *references = (myFields->fld_references != NULL) ? (myFields->fld_references->mid_list) : NULL;
         char *subject = (myFields->fld_subject != NULL) ? (myFields->fld_subject->sbj_value) : NULL;
-
+        
+        // yxc add
+        struct mailimf_date_time *date = (myFields->fld_orig_date != NULL) ? (myFields->fld_orig_date->dt_date_time) : mailimf_get_current_date();
+        char *message_id = (myFields->fld_message_id != NULL) ? (myFields->fld_message_id->mid_value) : mailimf_get_message_id();
+        
         //TODO uh oh, when this get freed it frees stuff in the CTCoreMessage
         //TODO Need to make sure that fields gets freed somewhere
-        fields = mailimf_fields_new_with_data(from, sender, replyTo, to, cc, bcc, inReplyTo, references, subject);
+        fields = mailimf_fields_new_with_data_all(date, from, sender, replyTo, to, cc, bcc, message_id, inReplyTo, references, subject);
+       
         [(CTMIME_MessagePart *)msgPart setIMFFields:fields];
-        // yxc changed
+        
+        // yxc add
         if (myFields) {
             mailimf_single_fields_free(myFields);
         }
-        myFields=mailimf_single_fields_new(fields);
+        
+        myFields = mailimf_single_fields_new(fields);
 
     }
     return [myParsedMIME render];
