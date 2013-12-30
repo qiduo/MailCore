@@ -121,39 +121,21 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
                 if (mMimeFields->fld_id != NULL)
                     self.contentId = [NSString stringWithCString:mMimeFields->fld_id encoding:NSUTF8StringEncoding];
                 
-                NSString* lowercaseName = [self.filename lowercaseString];
                 self.attached = YES;
-                if([lowercaseName hasSuffix:@".xls"] ||
-                    [lowercaseName hasSuffix:@".xlsx"] ||
-                    [lowercaseName hasSuffix:@".key.zip"] ||
-                    [lowercaseName hasSuffix:@".numbers.zip"] ||
-                    [lowercaseName hasSuffix:@".pages.zip"] ||
-                    [lowercaseName hasSuffix:@".pdf"] ||
-                    [lowercaseName hasSuffix:@".ppt"] ||
-                    [lowercaseName hasSuffix:@".doc"] ||
-                    [lowercaseName hasSuffix:@".docx"] ||
-                    [lowercaseName hasSuffix:@".rtf"] ||
-                    [lowercaseName hasSuffix:@".rtfd.zip"] ||
-                    [lowercaseName hasSuffix:@".key"] ||
-                    [lowercaseName hasSuffix:@".numbers"] ||
-                    [lowercaseName hasSuffix:@".pages"] ||
-                    [lowercaseName hasSuffix:@".png"] ||
-                    [lowercaseName hasSuffix:@".gif"] ||
-                    [lowercaseName hasSuffix:@".png"] ||
-                    [lowercaseName hasSuffix:@".jpg"] ||
-                    [lowercaseName hasSuffix:@".jpeg"] ||
-                    [lowercaseName hasSuffix:@".tiff"]) { // hack by gabor, improved by waseem, based on http://developer.apple.com/iphone/library/qa/qa2008/qa1630.html
-                    self.attached = YES;
-                }
-            }else if (mMimeFields->fld_content_name!=NULL){
+                
+            }else if (mMimeFields->fld_content_name != NULL){
                 if (mMimeFields->fld_content_charset) {
-                    char * data= mMimeFields->fld_content_name;
+                    char *data= mMimeFields->fld_content_name;
                     size_t currToken = 0;
-                    char *decodedSubject;
+                    char *decodedSubject = NULL;
                     mailmime_encoded_phrase_parse(mMimeFields->fld_content_charset, data, strlen(data),
                                                             &currToken, DEST_CHARSET, &decodedSubject);
-                    self.filename = MailCoreDecodeMIMEPhrase(decodedSubject);
-                    free(decodedSubject);
+                    if (decodedSubject != NULL) {
+                        self.filename = MailCoreDecodeMIMEPhrase(decodedSubject);
+                        free(decodedSubject);
+                    } else {
+                        self.filename = MailCoreDecodeMIMEPhrase(data);
+                    }
 
                 }else{
                     self.filename = MailCoreDecodeMIMEPhrase(mMimeFields->fld_content_name);
@@ -202,28 +184,7 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
                 break;
             }
         }
-        self.data=result;
-        /*
-        const char * data=mMime->mm_data.mm_single->dt_data.dt_text.dt_data;
-        struct mailmime_single_fields *mimeFields = NULL;
-        
-        int encoding = MAILMIME_MECHANISM_8BIT;
-        mimeFields = mailmime_single_fields_new(mMime->mm_mime_fields, mMime->mm_content_type);
-        if (mimeFields != NULL && mimeFields->fld_encoding != NULL)
-            encoding = mimeFields->fld_encoding->enc_type;
-        
-        size_t current_index = 0;
-        char * result=NULL;
-        size_t result_len;
-        size_t len=mMime->mm_data.mm_single->dt_data.dt_text.dt_length;
-        int r = mailmime_part_parse(data,len, &current_index,
-                                encoding, &result, &result_len);
-        if (r==MAIL_NO_ERROR) {
-            self.data=[NSData dataWithBytes:result length:result_len];
-        }
-        mailmime_decoded_part_free(result);
-        mailmime_single_fields_free(mimeFields);
-         */
+        self.data = result;
     }
 }
 
