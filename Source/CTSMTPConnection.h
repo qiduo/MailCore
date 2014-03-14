@@ -103,6 +103,15 @@ typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
               error:(NSError **)error;
 
 /**
+ * @param render is mail's raw content
+   @param from is mail's from
+   @param rcpts include to,cc,bcc
+ */
++ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error;
+
+/**
  Use this method to test the user's credentials.
  
  This is useful for account setup. You can have the user enter in their credentials and then verify they work without sending a message.

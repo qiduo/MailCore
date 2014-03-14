@@ -46,9 +46,9 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
     block(current, maximum);
 }
 
-+ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
-           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
++ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
+                   password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+                    useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
@@ -92,16 +92,12 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
         }
     }
     
-    success = [smtpObj setFrom:[[[message from] anyObject] email]];
+    success = [smtpObj setFrom:[from email]];
     if (!success) {
         goto error;
     }
     
-    /* recipients */
-    NSMutableSet *rcpts = [NSMutableSet set];
-    [rcpts unionSet:[message to]];
-    [rcpts unionSet:[message bcc]];
-    [rcpts unionSet:[message cc]];
+
     success = [smtpObj setRecipients:rcpts];
     if (!success) {
         goto error;
@@ -112,7 +108,10 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
     }
     
     /* data */
-    success = [smtpObj setData:[message render]];
+    const char* bytes = [render bytes];
+    NSUInteger length = [render length];
+    
+    success = [smtpObj setData:bytes length:length];
     
     if (block) {
         mailsmtp_set_progress_callback(smtp, NULL, NULL);
@@ -132,6 +131,18 @@ error:
     [smtpObj release];
     mailsmtp_free(smtp);
     return NO;
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
+    /* recipients */
+    NSMutableSet *rcpts = [NSMutableSet set];
+    [rcpts unionSet:[message to]];
+    [rcpts unionSet:[message bcc]];
+    [rcpts unionSet:[message cc]];
+    
+    return [self sendMessage:[[message render] dataUsingEncoding:NSUTF8StringEncoding] from:[message.from anyObject] rcpts:rcpts server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:connectionTimeout uploadTimeout:uploadTimeout error:error];
 }
 
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block error:(NSError **)error {
