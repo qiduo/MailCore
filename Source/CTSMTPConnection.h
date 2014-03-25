@@ -40,11 +40,15 @@ typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
  the necessary server settings and CTSMTPConnection will send the message.
 */
 
-@class CTCoreMessage, CTCoreAddress;
+@class CTCoreMessage, CTCoreAddress, CTSMTP;
 
 @interface CTSMTPConnection : NSObject {
 
 }
+
+@property (nonatomic,strong) CTSMTP *smtpObj;
+
+
 /**
  This method...it sends e-mail.
  @param message	Just pass in a CTCoreMessage which has the body, subject, from, to etc. that you want
@@ -107,9 +111,35 @@ typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
    @param from is mail's from
    @param rcpts include to,cc,bcc
  */
-+ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
-           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error;
++ (BOOL)sendMessage:(NSData *)render
+               from:(CTCoreAddress *)from
+              rcpts:(NSSet *)rcpts
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+  connectionTimeout:(time_t)connectionTimeout
+      uploadTimeout:(time_t)uploadTimeout
+              error:(NSError **)error;
+
+- (BOOL)sendMessage:(NSData *)render
+               from:(CTCoreAddress *)from
+              rcpts:(NSSet *)rcpts
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+  connectionTimeout:(time_t)connectionTimeout
+      uploadTimeout:(time_t)uploadTimeout
+              error:(NSError **)error;
 
 /**
  Use this method to test the user's credentials.
@@ -131,6 +161,11 @@ typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
             connectionType:(CTSMTPConnectionType)connectionType
                    useAuth:(BOOL)auth
                      error:(NSError **)error;
+
+/**
+ * cancel sending mail
+ */
+- (void)cancel;
 
 /**
  * @param authType. enum MAILSMTP_AUTH_PLAIN / MAILSMTP_AUTH_XOAUTH2 ...

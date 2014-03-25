@@ -46,9 +46,11 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
     block(current, maximum);
 }
 
-+ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
-                   password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-                    useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
+@synthesize smtpObj;
+
+- (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
@@ -56,7 +58,7 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
         mailsmtp_set_timeout(smtp, connectionTimeout);
     }
     
-    CTSMTP *smtpObj = [[CTESMTP alloc] initWithResource:smtp];
+    self.smtpObj = [[CTESMTP alloc] initWithResource:smtp];
     if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
         success = [smtpObj connectToServer:server port:port];
     } else if (connectionType == CTSMTPConnectionTypeTLS) {
@@ -97,7 +99,7 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
         goto error;
     }
     
-
+    
     success = [smtpObj setRecipients:rcpts];
     if (!success) {
         goto error;
@@ -125,12 +127,24 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
     mailsmtp_free(smtp);
     
     [smtpObj release];
+    smtpObj = nil;
     return YES;
 error:
     *error = smtpObj.lastError;
     [smtpObj release];
+    smtpObj = nil;
     mailsmtp_free(smtp);
     return NO;
+}
+
+
++ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
+                   password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+                    useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
+    CTSMTPConnection *smtp = [[CTSMTPConnection alloc] init];
+    BOOL success = [smtp sendMessage:render from:from rcpts:rcpts server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:connectionTimeout uploadTimeout:uploadTimeout error:error];
+    [smtp release];
+    return success;
 }
 
 + (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
@@ -210,6 +224,13 @@ error:
   [smtpObj release];
   mailsmtp_free(smtp);
   return NO;
+}
+
+- (void)cancel {
+    mailsmtp *smtp = self.smtpObj.resource;
+    if (smtp) {
+        mailstream_cancel(smtp->stream);
+    }
 }
 
 
