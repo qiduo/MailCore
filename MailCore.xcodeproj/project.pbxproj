@@ -205,6 +205,20 @@
 			remoteGlobalIDString = C682E21815B315EF00BE9DA7;
 			remoteInfo = "libetpan ios";
 		};
+		FA96566B199BBC710035682E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F8886339158103460088CF38 /* openssl.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = A0511C51127770FD00DE46C4;
+			remoteInfo = crypto;
+		};
+		FA965672199BBC7E0035682E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F888632D158102F50088CF38 /* Cyrus SASL.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC07D0554694100DB518D;
+			remoteInfo = sasl2;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -650,6 +664,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				FA965673199BBC7E0035682E /* PBXTargetDependency */,
+				FA96566C199BBC710035682E /* PBXTargetDependency */,
 				FA026E2B17F30DF400EDF67F /* PBXTargetDependency */,
 			);
 			name = "MailCore iOS";
@@ -928,6 +944,16 @@
 			isa = PBXTargetDependency;
 			name = "libetpan ios";
 			targetProxy = FA026E2A17F30DF400EDF67F /* PBXContainerItemProxy */;
+		};
+		FA96566C199BBC710035682E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = crypto;
+			targetProxy = FA96566B199BBC710035682E /* PBXContainerItemProxy */;
+		};
+		FA965673199BBC7E0035682E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = sasl2;
+			targetProxy = FA965672199BBC7E0035682E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
