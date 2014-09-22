@@ -117,7 +117,7 @@
 		F8EC5B0514C37F60006AF4D8 /* CTCoreFolderTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F8EC5B0514C37F60006AF4D7 /* CTCoreFolderTests.m */; };
 		F9FC3A731683FC07004B2D1E /* TestData in Resources */ = {isa = PBXBuildFile; fileRef = F9FC3A721683FC07004B2D1E /* TestData */; };
 		FA026E2C17F30E0800EDF67F /* libetpan-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FA026E2817F30DEC00EDF67F /* libetpan-ios.a */; };
-		FA026E2D17F30E2900EDF67F /* libetpan.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FA026E2617F30DEC00EDF67F /* libetpan.a */; };
+		FA1745D919D08A81001090AA /* libetpan-ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FA026E2817F30DEC00EDF67F /* libetpan-ios.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,19 +205,19 @@
 			remoteGlobalIDString = C682E21815B315EF00BE9DA7;
 			remoteInfo = "libetpan ios";
 		};
+		FA1745CE19D06052001090AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F888632D158102F50088CF38 /* Cyrus SASL.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC07D0554694100DB518D;
+			remoteInfo = sasl2;
+		};
 		FA96566B199BBC710035682E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F8886339158103460088CF38 /* openssl.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = A0511C51127770FD00DE46C4;
 			remoteInfo = crypto;
-		};
-		FA965672199BBC7E0035682E /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F888632D158102F50088CF38 /* Cyrus SASL.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC07D0554694100DB518D;
-			remoteInfo = sasl2;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -314,7 +314,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FA026E2D17F30E2900EDF67F /* libetpan.a in Frameworks */,
+				FA1745D919D08A81001090AA /* libetpan-ios.a in Frameworks */,
 				8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */,
 				F8483E4109CE7B9000B80440 /* libssl.dylib in Frameworks */,
 				F8483E4309CE7B9C00B80440 /* libiconv.dylib in Frameworks */,
@@ -664,7 +664,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				FA965673199BBC7E0035682E /* PBXTargetDependency */,
+				FA1745CF19D06052001090AA /* PBXTargetDependency */,
 				FA96566C199BBC710035682E /* PBXTargetDependency */,
 				FA026E2B17F30DF400EDF67F /* PBXTargetDependency */,
 			);
@@ -693,7 +693,7 @@
 			name = Tests;
 			productName = Tests;
 			productReference = F8DFCF4915801A5000C01975 /* Tests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -945,15 +945,15 @@
 			name = "libetpan ios";
 			targetProxy = FA026E2A17F30DF400EDF67F /* PBXContainerItemProxy */;
 		};
+		FA1745CF19D06052001090AA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = sasl2;
+			targetProxy = FA1745CE19D06052001090AA /* PBXContainerItemProxy */;
+		};
 		FA96566C199BBC710035682E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = crypto;
 			targetProxy = FA96566B199BBC710035682E /* PBXContainerItemProxy */;
-		};
-		FA965673199BBC7E0035682E /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = sasl2;
-			targetProxy = FA965672199BBC7E0035682E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -972,7 +972,7 @@
 		1DEB91AE08733DA50010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -1002,6 +1002,7 @@
 					0xb0000000,
 				);
 				PRODUCT_NAME = MailCore;
+				SDKROOT = iphoneos8.0;
 				WRAPPER_EXTENSION = framework;
 				ZERO_LINK = YES;
 			};
@@ -1010,7 +1011,7 @@
 		1DEB91AF08733DA50010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -1037,6 +1038,7 @@
 					0xb0000000,
 				);
 				PRODUCT_NAME = MailCore;
+				SDKROOT = iphoneos8.0;
 				STRIP_INSTALLED_PRODUCT = YES;
 				WRAPPER_EXTENSION = framework;
 			};
