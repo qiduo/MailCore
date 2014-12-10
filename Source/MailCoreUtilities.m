@@ -264,7 +264,7 @@ NSError* MailCoreCreateErrorFromIMAPCode(int errcode) {
 NSString *MailCoreDecodeMIMEPhrase(char *data) {
     int err;
     size_t currToken = 0;
-    char *decodedSubject;
+    char *decodedSubject = NULL;
     NSString *result;
 
     if (data && *data != '\0') {
@@ -272,16 +272,17 @@ NSString *MailCoreDecodeMIMEPhrase(char *data) {
                                             &currToken, DEST_CHARSET, &decodedSubject);
 
         if (err != MAILIMF_NO_ERROR) {
-            if (decodedSubject == NULL)
+            if (decodedSubject != NULL)
                 free(decodedSubject);
-            return nil;
+            NSStringEncoding gb2312 = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+            result = [NSString stringWithCString:data encoding:gb2312];
+        } else {
+            result = [NSString stringWithUTF8String:decodedSubject];
+            free(decodedSubject);
         }
     } else {
         return @"";
     }
-
-    result = [NSString stringWithCString:decodedSubject encoding:NSUTF8StringEncoding];
-    free(decodedSubject);
     return result;
 }
 

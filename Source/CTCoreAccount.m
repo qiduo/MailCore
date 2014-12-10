@@ -40,7 +40,7 @@
 
 
 @implementation CTCoreAccount
-@synthesize lastError, pathDelimiter;
+@synthesize lastError, pathDelimiter, corefolders, lastUsedDate;
 
 - (id)init {
     self = [super init];
@@ -52,12 +52,17 @@
     return self;
 }
 
+- (NSMutableArray *)corefolders{
+    return corefolders;
+}
 
 - (void)dealloc {
     mailstorage_disconnect(myStorage);
     mailstorage_free(myStorage);
     self.lastError = nil;
     self.pathDelimiter = nil;
+    self.corefolders = nil;
+    self.lastUsedDate = nil;
     [super dealloc];
 }
 
@@ -69,6 +74,10 @@
     return connected;
 }
 
+- (NSDate *)lastUsedDate{
+    return lastUsedDate;
+}
+
 - (BOOL)connectToServer:(NSString *)server port:(int)port
         connectionType:(int)conType authType:(int)authType
         login:(NSString *)login password:(NSString *)password {
@@ -76,9 +85,45 @@
     int imap_cached = 0;
 
     const char* auth_type_to_pass = NULL;
-    if(authType == IMAP_AUTH_TYPE_SASL_CRAM_MD5) {
-        auth_type_to_pass = "CRAM-MD5";
+    
+    switch (authType) {
+        case IMAP_AUTH_TYPE_SASL_CRAM_MD5:
+            auth_type_to_pass = "CRAM-MD5";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_XOAUTH2:
+            auth_type_to_pass = "XOAUTH2";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_PLAIN:
+            auth_type_to_pass = "PLAIN";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_LOGIN:
+            auth_type_to_pass = "LOGIN";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_ANONYMOUS:
+            auth_type_to_pass = "ANONYMOUS";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_DIGEST_MD5:
+            auth_type_to_pass = "DIGEST-MD5";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_GSSAPI:
+            auth_type_to_pass = "GSSAPI";
+            break;
+            
+        case IMAP_AUTH_TYPE_SASL_KERBEROS_V4:
+            auth_type_to_pass = "KERBEROS_V4";
+            break;
+
+        default:
+            break;
     }
+    
+    NSLog(@"auth_type_to_pass = %s", auth_type_to_pass);
 
     err = imap_mailstorage_init_sasl(myStorage,
                                      (char *)[server cStringUsingEncoding:NSUTF8StringEncoding],

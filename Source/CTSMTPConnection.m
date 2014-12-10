@@ -40,13 +40,149 @@
 
 //TODO Add more descriptive error messages using mailsmtp_strerror
 @implementation CTSMTPConnection
-+ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+
+static void send_progress_callback(size_t current, size_t maximum, void * context) {
+    CTSendProgressBlock block = context;
+    block(current, maximum);
+}
+
+@synthesize smtpObj;
+
+- (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
            password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-            useAuth:(BOOL)auth error:(NSError **)error {
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
     BOOL success;
     mailsmtp *smtp = NULL;
     smtp = mailsmtp_new(0, NULL);
+    if (connectionTimeout > 0) {
+        mailsmtp_set_timeout(smtp, connectionTimeout);
+    }
+    
+    self.smtpObj = [[CTESMTP alloc] initWithResource:smtp];
+    if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
+        success = [smtpObj connectToServer:server port:port];
+    } else if (connectionType == CTSMTPConnectionTypeTLS) {
+        success = [smtpObj connectWithTlsToServer:server port:port];
+    }
+    if (!success) {
+        goto error;
+    }
+    
+    if (uploadTimeout > 0 && smtp->stream != NULL) {
+        smtp->stream->low->timeout = uploadTimeout;
+    }
+    
+    if ([smtpObj helo] == NO) {
+        /* The server didn't support ESMTP, so switching to STMP */
+        [smtpObj release];
+        smtpObj = [[CTSMTP alloc] initWithResource:smtp];
+        success = [smtpObj helo];
+        if (!success) {
+            goto error;
+        }
+    }
+    if (connectionType == CTSMTPConnectionTypeStartTLS) {
+        success = [smtpObj startTLS];
+        if (!success) {
+            goto error;
+        }
+    }
+    if (auth) {
+        success = [smtpObj authenticateWithUsername:username password:password server:server authType:authType];
+        if (!success) {
+            goto error;
+        }
+    }
+    
+    success = [smtpObj setFrom:[from email]];
+    if (!success) {
+        goto error;
+    }
+    
+    
+    success = [smtpObj setRecipients:rcpts];
+    if (!success) {
+        goto error;
+    }
+    
+    if (block) {
+        mailsmtp_set_progress_callback(smtp, &send_progress_callback, block);
+    }
+    
+    /* data */
+    const char* bytes = [render bytes];
+    NSUInteger length = [render length];
+    
+    success = [smtpObj setData:bytes length:length];
+    
+    if (block) {
+        mailsmtp_set_progress_callback(smtp, NULL, NULL);
+    }
+    
+    if (!success) {
+        goto error;
+    }
+    
+    mailsmtp_quit(smtp);
+    mailsmtp_free(smtp);
+    
+    [smtpObj release];
+    smtpObj = nil;
+    return YES;
+error:
+    *error = smtpObj.lastError;
+    [smtpObj release];
+    smtpObj = nil;
+    mailsmtp_free(smtp);
+    return NO;
+}
 
+
++ (BOOL)sendMessage:(NSData *)render from:(CTCoreAddress *)from rcpts:(NSSet *)rcpts server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
+    CTSMTPConnection *smtp = [[CTSMTPConnection alloc] init];
+    BOOL success = [smtp sendMessage:render from:from rcpts:rcpts server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:connectionTimeout uploadTimeout:uploadTimeout error:error];
+    [smtp release];
+    return success;
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error {
+    /* recipients */
+    NSMutableSet *rcpts = [NSMutableSet set];
+    [rcpts unionSet:[message to]];
+    [rcpts unionSet:[message bcc]];
+    [rcpts unionSet:[message cc]];
+    
+    return [self sendMessage:[[message render] dataUsingEncoding:NSUTF8StringEncoding] from:[message.from anyObject] rcpts:rcpts server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:connectionTimeout uploadTimeout:uploadTimeout error:error];
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:block connectionTimeout:0 uploadTimeout:0 error:error];
+}
+
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:authType progress:nil error:error];
+}
+
+
++(BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth error:(NSError **)error {
+    return [self sendMessage:message server:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:MAILSMTP_AUTH_PLAIN error:error];
+}
+
+
+
++ (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password
+                      port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+                   useAuth:(BOOL)auth authType:(int)authType error:(NSError **)error {
+    BOOL success;
+    mailsmtp *smtp = NULL;
+    smtp = mailsmtp_new(0, NULL);
+    
     CTSMTP *smtpObj = [[CTESMTP alloc] initWithResource:smtp];
     if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
         success = [smtpObj connectToServer:server port:port];
@@ -72,39 +208,10 @@
         }
     }
     if (auth) {
-        success = [smtpObj authenticateWithUsername:username password:password server:server];
+        success = [smtpObj authenticateWithUsername:username password:password server:server authType:authType];
         if (!success) {
             goto error;
         }
-    }
-
-    success = [smtpObj setFrom:[[[message from] anyObject] email]];
-    if (!success) {
-        goto error;
-    }
-
-    /* recipients */
-    NSMutableSet *rcpts = [NSMutableSet set];
-    [rcpts unionSet:[message to]];
-    [rcpts unionSet:[message bcc]];
-    [rcpts unionSet:[message cc]];
-    success = [smtpObj setRecipients:rcpts];
-    if (!success) {
-        goto error;
-    }
-    
-    NSSet *tmpBcc = message.bcc;
-
-    // Temporarily wipe out BCC so it isn't sent with the message
-    message.bcc = nil;
-    
-    /* data */
-    success = [smtpObj setData:[message render]];
-    
-    message.bcc = tmpBcc;
-    
-    if (!success) {
-        goto error;
     }
     
     mailsmtp_quit(smtp);
@@ -119,53 +226,18 @@ error:
     return NO;
 }
 
-+ (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password
-                      port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
-                   useAuth:(BOOL)auth error:(NSError **)error {
-  BOOL success;
-  mailsmtp *smtp = NULL;
-  smtp = mailsmtp_new(0, NULL);
-    
-  CTSMTP *smtpObj = [[CTESMTP alloc] initWithResource:smtp];
-  if (connectionType == CTSMTPConnectionTypeStartTLS || connectionType == CTSMTPConnectionTypePlain) {
-     success = [smtpObj connectToServer:server port:port];
-  } else if (connectionType == CTSMTPConnectionTypeTLS) {
-     success = [smtpObj connectWithTlsToServer:server port:port];
-  }
-  if (!success) {
-    goto error;
-  }
-  if ([smtpObj helo] == NO) {
-    /* The server didn't support ESMTP, so switching to STMP */
-    [smtpObj release];
-    smtpObj = [[CTSMTP alloc] initWithResource:smtp];
-    success = [smtpObj helo];
-    if (!success) {
-      goto error;
+- (void)cancel {
+    mailsmtp *smtp = self.smtpObj.resource;
+    if (smtp) {
+        mailstream_cancel(smtp->stream);
     }
-  }
-  if (connectionType == CTSMTPConnectionTypeStartTLS) {
-    success = [smtpObj startTLS];
-    if (!success) {
-      goto error;
-    }
-  }
-  if (auth) {
-    success = [smtpObj authenticateWithUsername:username password:password server:server];
-    if (!success) {
-      goto error;
-    }
-  }
-
-  mailsmtp_quit(smtp);
-  mailsmtp_free(smtp);
-    
-  [smtpObj release];
-  return YES;
-error:
-  *error = smtpObj.lastError;
-  [smtpObj release];
-  mailsmtp_free(smtp);
-  return NO;
 }
+
+
++ (BOOL)canConnectToServer:(NSString *)server username:(NSString *)username password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType useAuth:(BOOL)auth error:(NSError **)error {
+    return [self canConnectToServer:server username:username password:password port:port connectionType:connectionType useAuth:auth authType:MAILSMTP_AUTH_PLAIN error:error];
+}
+
+
+
 @end

@@ -56,7 +56,7 @@
 
         char *source_charset = mMimeFields->fld_content_charset;
         if (source_charset == NULL) {
-            source_charset = DEST_CHARSET;
+            source_charset = self.defaultSourceCharset;
         }
 
         int r = charconv_buffer(DEST_CHARSET, source_charset,
@@ -91,6 +91,7 @@
     int r;
 
     /* text/plain part */
+    //TODO this needs to be changed, something other than 8BIT should be used
     mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_QUOTED_PRINTABLE);
     content = mailmime_content_new_with_str("text/plain");
     param = mailmime_parameter_new(strdup("charset"), strdup(DEST_CHARSET));

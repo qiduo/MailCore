@@ -89,6 +89,10 @@
     return YES;
 }
 
+- (BOOL)authenticateWithUsername:(NSString *)username password:(NSString *)password server:(NSString *)server authType:(int)authType {
+    return YES;
+}
+
 - (BOOL)setFrom:(NSString *)fromAddress {
     int ret = mailsmtp_mail([self resource], [fromAddress cStringUsingEncoding:NSUTF8StringEncoding]);
     if (ret != MAIL_NO_ERROR) {
@@ -114,6 +118,20 @@
 
 - (BOOL)setRecipientAddress:(NSString *)recAddress {
     int ret = mailsmtp_rcpt([self resource], [recAddress cStringUsingEncoding:NSUTF8StringEncoding]);
+    if (ret != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
+        return NO;
+    }
+    return YES;
+}
+
+- (BOOL)setData:(const char *)data length:(NSUInteger)length {
+    int ret = mailsmtp_data([self resource]);
+    if (ret != MAIL_NO_ERROR) {
+        self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
+        return NO;
+    }
+    ret = mailsmtp_data_message([self resource], data, length);
     if (ret != MAIL_NO_ERROR) {
         self.lastError = MailCoreCreateErrorFromSMTPCode(ret);
         return NO;

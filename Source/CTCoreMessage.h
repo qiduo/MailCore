@@ -71,6 +71,12 @@ typedef enum {
 @property(retain) CTMIME *mime;
 
 /**
+ yxc add
+ This method returns the message's internal date
+*/
+@property (nonatomic,retain) NSDate * internalDate;
+
+/**
  Used to instantiate an empty message object.
 */
 - (id)init;
@@ -123,6 +129,10 @@ typedef enum {
  This method returns the html body as an NSString.
 */
 - (NSString *)htmlBody;
+/**
+ This method returns the html body as an NSString using specific encoding.
+ */
+- (NSString *)htmlBodyUsingEncoding:(char *)sourceCharset;
 
 /**  
  Returns a message body as an NSString. 
@@ -173,7 +183,12 @@ typedef enum {
 - (void)setSubject:(NSString *)subject;
 
 /**
- Returns the date as given in the Date mail field
+ Returns the timezone of the sender of the message (got from the Date field timezone attribute)
+*/
+- (NSTimeZone*)senderTimeZone;
+
+/**
+ Returns the date as given in the Date mail field (no timezone is applied)
 */
 - (NSDate *)senderDate; 
 
@@ -181,6 +196,18 @@ typedef enum {
  Returns YES if the message is deleted.
  */
 - (BOOL)isDeleted;
+
+/**
+ Returns the date in the Date field converted to GMT
+*/
+- (NSDate *)sentDateGMT; 
+
+/**
+Returns the date in the Date field converted to the local timezone
+    
+The local timezone is the one set in the device running this code
+*/
+- (NSDate *)sentDateLocalTimeZone; 
 
 /**
  Returns YES if the message is unread.
@@ -365,4 +392,5 @@ typedef enum {
 - (mailimap *)imapSession;
 - (void)setBodyStructure:(struct mailmime *)mime;
 - (void)setFields:(struct mailimf_fields *)fields;
+- (struct mailimf_single_fields *)fields;
 @end

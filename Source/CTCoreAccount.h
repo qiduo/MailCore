@@ -46,6 +46,8 @@
     BOOL connected;
     NSError *lastError;
     NSString *pathDelimiter;
+    NSMutableArray *corefolders;
+    NSDate *lastUsedDate;
 }
 /**
  If an error occurred (nil or return of NO) call this method to get the error
@@ -53,6 +55,10 @@
 @property(nonatomic, retain) NSError *lastError;
 
 @property(nonatomic, retain) NSString *pathDelimiter;
+
+@property(nonatomic, retain) NSMutableArray *corefolders;
+
+@property(nonatomic, retain) NSDate *lastUsedDate;
 
 /**
  Retrieves the list of all the available folders from the server.

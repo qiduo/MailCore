@@ -80,12 +80,12 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
         forMessage:(struct mailmessage *)message {
     self = [super initWithMIMEStruct:mime forMessage:message];
     if (self) {
-        self.data = nil;
         mMime = mime;
         mMessage = message;
         self.fetched = NO;
-
         mMimeFields = mailmime_single_fields_new(mMime->mm_mime_fields, mMime->mm_content_type);
+        [self getMimeData];
+
         if (mMimeFields != NULL) {
             if (mMimeFields->fld_id != NULL) {
                 self.contentId = [NSString stringWithCString:mMimeFields->fld_id encoding:NSUTF8StringEncoding];
@@ -112,37 +112,80 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
             }
 
             if (mMimeFields->fld_disposition_filename != NULL) {
-                self.filename = [NSString stringWithCString:mMimeFields->fld_disposition_filename encoding:NSUTF8StringEncoding];
-            } else if (mMimeFields->fld_location != NULL) {
-                self.filename = [NSString stringWithCString:mMimeFields->fld_location encoding:NSUTF8StringEncoding];
-            }
+                self.filename = MailCoreDecodeMIMEPhrase(mMimeFields->fld_disposition_filename);
+                /*
+                if (!self.filename||[self.filename isEqualToString:@""]) {
+                    CFStringRef cfstr = CFStringCreateWithCString(NULL, mMimeFields->fld_content_name, kCFStringEncodingGB_18030_2000);
+                    self.filename= [( NSString *)cfstr copy];
+                }
+                */
+                if (mMimeFields->fld_id != NULL)
+                    self.contentId = [NSString stringWithCString:mMimeFields->fld_id encoding:NSUTF8StringEncoding];
+                
+                self.attached = YES;
+                
+            }else if (mMimeFields->fld_content_name != NULL){
+                if (mMimeFields->fld_content_charset) {
+                    char *data= mMimeFields->fld_content_name;
+                    size_t currToken = 0;
+                    char *decodedSubject = NULL;
+                    mailmime_encoded_phrase_parse(mMimeFields->fld_content_charset, data, strlen(data),
+                                                            &currToken, DEST_CHARSET, &decodedSubject);
+                    if (decodedSubject != NULL) {
+                        self.filename = MailCoreDecodeMIMEPhrase(decodedSubject);
+                        free(decodedSubject);
+                    } else {
+                        self.filename = MailCoreDecodeMIMEPhrase(data);
+                    }
 
-            NSString* lowercaseName = [self.filename lowercaseString];
-            if([lowercaseName hasSuffix:@".xls"] ||
-                [lowercaseName hasSuffix:@".xlsx"] ||
-                [lowercaseName hasSuffix:@".key.zip"] ||
-                [lowercaseName hasSuffix:@".numbers.zip"] ||
-                [lowercaseName hasSuffix:@".pages.zip"] ||
-                [lowercaseName hasSuffix:@".pdf"] ||
-                [lowercaseName hasSuffix:@".ppt"] ||
-                [lowercaseName hasSuffix:@".doc"] ||
-                [lowercaseName hasSuffix:@".docx"] ||
-                [lowercaseName hasSuffix:@".rtf"] ||
-                [lowercaseName hasSuffix:@".rtfd.zip"] ||
-                [lowercaseName hasSuffix:@".key"] ||
-                [lowercaseName hasSuffix:@".numbers"] ||
-                [lowercaseName hasSuffix:@".pages"] ||
-                [lowercaseName hasSuffix:@".png"] ||
-                [lowercaseName hasSuffix:@".gif"] ||
-                [lowercaseName hasSuffix:@".png"] ||
-                [lowercaseName hasSuffix:@".jpg"] ||
-                [lowercaseName hasSuffix:@".jpeg"] ||
-                [lowercaseName hasSuffix:@".tiff"]) { // hack by gabor, improved by waseem, based on http://developer.apple.com/iphone/library/qa/qa2008/qa1630.html
+                }else{
+                    self.filename = MailCoreDecodeMIMEPhrase(mMimeFields->fld_content_name);
+                }
                 self.attached = YES;
             }
         }
     }
     return self;
+}
+
+- (void) getMimeData
+{
+    if (mMime->mm_body) {
+        struct mailmime_data * data;
+        const char * bytes;
+        size_t length;
+        NSData * result;
+                
+        data = mMime->mm_data.mm_single;
+        bytes = data->dt_data.dt_text.dt_data;
+        length = data->dt_data.dt_text.dt_length;
+        switch (data->dt_encoding) {
+            case MAILMIME_MECHANISM_7BIT:
+            case MAILMIME_MECHANISM_8BIT:
+            case MAILMIME_MECHANISM_BINARY:
+            case MAILMIME_MECHANISM_TOKEN:
+            {
+                result=[NSData dataWithBytes:bytes length:length];
+                break;
+            }
+                
+            case MAILMIME_MECHANISM_QUOTED_PRINTABLE:
+            case MAILMIME_MECHANISM_BASE64:
+            {
+                char * decoded;
+                size_t decoded_length;
+                size_t cur_token;
+                
+                cur_token = 0;
+                mailmime_part_parse(bytes, length, &cur_token,
+                                    data->dt_encoding, &decoded, &decoded_length);
+                result=[NSData dataWithBytes:decoded length:decoded_length];
+                mailmime_decoded_part_free(decoded);
+                break;
+            }
+        }
+        self.data = result;
+    }
 }
 
 - (BOOL)fetchPartWithProgress:(CTProgressBlock)block {
@@ -175,7 +218,7 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
 
 
         size_t current_index = 0;
-        char * result;
+        char * result=NULL;
         size_t result_len;
         r = mailmime_part_parse(fetchedData, fetchedDataLen, &current_index,
                                     encoding, &result, &result_len);
@@ -202,6 +245,7 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
     struct mailmime_fields *mime_fields;
     struct mailmime *mime_sub;
     struct mailmime_content *content;
+    struct mailmime_parameter * param;
     int r;
 
     if (mFilename) {
@@ -214,8 +258,16 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
     } else {
         mime_fields = mailmime_fields_new_encoding(MAILMIME_MECHANISM_BASE64);
     }
+    if (self.contentId) {
+        struct mailmime_field*  contentId= mailmime_field_new(MAILMIME_FIELD_ID, NULL, NULL, strdup([self.contentId UTF8String]), NULL, 0, NULL, NULL, NULL);
+        mailmime_fields_add(mime_fields, contentId);
+    }
     content = mailmime_content_new_with_str([self.contentType cStringUsingEncoding:NSUTF8StringEncoding]);
     mime_sub = mailmime_new_empty(content, mime_fields);
+    param = mailmime_parameter_new(strdup("charset"), strdup(DEST_CHARSET));
+    r = clist_append(content->ct_parameters, param);
+    param = mailmime_parameter_new(strdup("name"), strdup([mFilename cStringUsingEncoding:NSUTF8StringEncoding]));
+    r = clist_append(content->ct_parameters, param);
 
     // Add Data
     r = mailmime_set_body_text(mime_sub, (char *)[self.data bytes], [self.data length]);

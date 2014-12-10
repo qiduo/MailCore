@@ -32,17 +32,23 @@
 #import <Foundation/Foundation.h>
 #import "MailCoreTypes.h"
 
+typedef void (^CTSendProgressBlock)(size_t curr, size_t max);
+
 /**
  This is not a class you instantiate! It has only two class methods, and that is all you need to send e-mail.
  First use CTCoreMessage to compose an e-mail and then pass the e-mail to the method sendMessage: with
  the necessary server settings and CTSMTPConnection will send the message.
-*/
+ */
 
-@class CTCoreMessage, CTCoreAddress;
+@class CTCoreMessage, CTCoreAddress, CTSMTP;
 
 @interface CTSMTPConnection : NSObject {
-
+    
 }
+
+@property (nonatomic,strong) CTSMTP *smtpObj;
+
+
 /**
  This method...it sends e-mail.
  @param message	Just pass in a CTCoreMessage which has the body, subject, from, to etc. that you want
@@ -54,7 +60,7 @@
  @param auth Pass in YES if you would like to use SASL authentication
  @param error Will contain an error when the method returns NO
  @return Returns YES on success, NO on error
-*/
+ */
 + (BOOL)sendMessage:(CTCoreMessage *)message
              server:(NSString *)server
            username:(NSString *)username
@@ -62,6 +68,77 @@
                port:(unsigned int)port
      connectionType:(CTSMTPConnectionType)connectionType
             useAuth:(BOOL)auth
+              error:(NSError **)error;
+
+/**
+ * @param authType. enum MAILSMTP_AUTH_PLAIN / MAILSMTP_AUTH_XOAUTH2 ...
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+              error:(NSError **)error;
+
+/**
+ * @param connectionTimeout, timeout for connection to server
+ @param uploadTimeout, timeout for uploading
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message server:(NSString *)server username:(NSString *)username
+           password:(NSString *)password port:(unsigned int)port connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth authType:(int)authType progress:(CTSendProgressBlock)block  connectionTimeout:(time_t)connectionTimeout uploadTimeout:(time_t)uploadTimeout error:(NSError **)error;
+
+
+/**
+ * @param block the call back block for send mail progress, can be nil
+ */
++ (BOOL)sendMessage:(CTCoreMessage *)message
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+              error:(NSError **)error;
+
+/**
+ * @param render is mail's raw content
+ @param from is mail's from
+ @param rcpts include to,cc,bcc
+ */
++ (BOOL)sendMessage:(NSData *)render
+               from:(CTCoreAddress *)from
+              rcpts:(NSSet *)rcpts
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+  connectionTimeout:(time_t)connectionTimeout
+      uploadTimeout:(time_t)uploadTimeout
+              error:(NSError **)error;
+
+- (BOOL)sendMessage:(NSData *)render
+               from:(CTCoreAddress *)from
+              rcpts:(NSSet *)rcpts
+             server:(NSString *)server
+           username:(NSString *)username
+           password:(NSString *)password
+               port:(unsigned int)port
+     connectionType:(CTSMTPConnectionType)connectionType
+            useAuth:(BOOL)auth
+           authType:(int)authType
+           progress:(CTSendProgressBlock)block
+  connectionTimeout:(time_t)connectionTimeout
+      uploadTimeout:(time_t)uploadTimeout
               error:(NSError **)error;
 
 /**
@@ -84,5 +161,24 @@
             connectionType:(CTSMTPConnectionType)connectionType
                    useAuth:(BOOL)auth
                      error:(NSError **)error;
+
+/**
+ * cancel sending mail
+ */
+- (void)cancel;
+
+/**
+ * @param authType. enum MAILSMTP_AUTH_PLAIN / MAILSMTP_AUTH_XOAUTH2 ...
+ */
++ (BOOL)canConnectToServer:(NSString *)server
+                  username:(NSString *)username
+                  password:(NSString *)password
+                      port:(unsigned int)port
+            connectionType:(CTSMTPConnectionType)connectionType
+                   useAuth:(BOOL)auth
+                  authType:(int)authType
+                     error:(NSError **)error;
+
+
 
 @end
