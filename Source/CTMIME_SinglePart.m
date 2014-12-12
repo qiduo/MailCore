@@ -94,8 +94,8 @@ static void download_progress_callback(size_t current, size_t maximum, void * co
             struct mailmime_disposition *disp = mMimeFields->fld_disposition;
             if (disp != NULL) {
                 if (disp->dsp_type != NULL) {
-                    self.attached = (disp->dsp_type->dsp_type == MAILMIME_DISPOSITION_TYPE_ATTACHMENT ||
-                                     disp->dsp_type->dsp_type == MAILMIME_DISPOSITION_TYPE_INLINE);
+                    self.attached = (disp->dsp_type->dsp_type ==
+                                     MAILMIME_DISPOSITION_TYPE_ATTACHMENT);
 
                     if (self.attached)
                     {
