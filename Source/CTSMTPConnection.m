@@ -81,7 +81,16 @@ static void send_progress_callback(size_t current, size_t maximum, void * contex
             goto error;
         }
     }
-    if (connectionType == CTSMTPConnectionTypeStartTLS) {
+    
+    // if server supports ESMTP, but without STARTTLS support, We can
+    // downgrade to PLAIN mode
+    BOOL hasStarttlsSupport = NO;
+    if (smtp->response != NULL) {
+        NSString *response = [NSString stringWithCString:smtp->response encoding:NSASCIIStringEncoding];
+        response = response.lowercaseString;
+        hasStarttlsSupport = ([response rangeOfString:@"starttls"].location != NSNotFound);
+    }
+    if (connectionType == CTSMTPConnectionTypeStartTLS && hasStarttlsSupport) {
         success = [smtpObj startTLS];
         if (!success) {
             goto error;
